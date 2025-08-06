@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Users, Trophy, Wrench, Home, Sparkles, Search } from 'lucide-react';
+import { BookOpen, Users, Trophy, Wrench, Home, Sparkles, Search, Target } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
@@ -10,6 +10,7 @@ export function Header() {
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/tools', icon: Wrench, label: 'Tools' },
     { path: '/build-app', icon: Sparkles, label: 'Build App' },
+    { path: '/marketing-vault', icon: Target, label: 'Marketing Vault' },
     { path: '/community', icon: Users, label: 'Community' },
     { path: '/progress', icon: Trophy, label: 'Progress' },
     { path: '/search', icon: Search, label: 'Search' },

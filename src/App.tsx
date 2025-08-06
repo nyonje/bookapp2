@@ -9,6 +9,7 @@ import { BuildApp } from './pages/BuildApp';
 import { Community } from './pages/Community';
 import { Progress } from './pages/Progress';
 import { Search } from './pages/Search';
+import { MarketingVault } from './pages/MarketingVault';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProgressProvider } from './contexts/ProgressContext';
 
@@ -26,6 +27,7 @@ function App() {
                 <Route path="/chapter/:chapterId" element={<ChapterDetail />} />
                 <Route path="/tools" element={<Tools />} />
                 <Route path="/build-app" element={<BuildApp />} />
+                <Route path="/marketing-vault" element={<MarketingVault />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/progress" element={<Progress />} />
                 <Route path="/search" element={<Search />} />

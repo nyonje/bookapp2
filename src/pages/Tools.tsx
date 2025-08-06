@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, FileText, CheckSquare, Lightbulb, Users, Target, Settings, Calendar, BarChart3, Wrench } from 'lucide-react';
+import { Calculator, FileText, CheckSquare, Lightbulb, Users, Target, Settings, Calendar, BarChart3, Wrench, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { CostCalculator } from '../components/CostCalculator';
 import { AppPlanningWorksheet } from '../components/AppPlanningWorksheet';
 
@@ -10,10 +10,12 @@ import { BusinessCaseCalculator } from '../components/tools/BusinessCaseCalculat
 import { FeaturePriorityMatrix } from '../components/tools/FeaturePriorityMatrix';
 import { DevelopmentStackSelector } from '../components/tools/DevelopmentStackSelector';
 import { ProjectTimelineBuilder } from '../components/tools/ProjectTimelineBuilder';
+import { TargetAudienceAnalyzer } from '../components/tools/TargetAudienceAnalyzer';
+import { SocialMediaContentPlanner } from '../components/tools/SocialMediaContentPlanner';
 
 export function Tools() {
-  const [activeCategory, setActiveCategory] = useState<'all' | 'planning' | 'analysis' | 'development' | 'business' | 'templates'>('all');
-  const [expandedTool, setExpandedTool] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<'all' | 'planning' | 'analysis' | 'development' | 'business' | 'templates' | 'marketing'>('all');
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
 
   const categories = [
     { id: 'all', label: 'All Tools', icon: CheckSquare },
@@ -21,6 +23,7 @@ export function Tools() {
     { id: 'business', label: 'Business Case', icon: Target },
     { id: 'planning', label: 'Planning', icon: Lightbulb },
     { id: 'development', label: 'Development', icon: Settings },
+    { id: 'marketing', label: 'Marketing', icon: MessageCircle },
     { id: 'templates', label: 'Templates', icon: FileText },
   ];
 
@@ -80,6 +83,24 @@ export function Tools() {
       chapter: 5
     },
     {
+      id: 'target-audience-analyzer',
+      name: 'Target Audience Analyzer',
+      description: 'Identify and analyze your ideal book readers using demographic and psychographic data.',
+      category: 'marketing',
+      icon: Target,
+      component: TargetAudienceAnalyzer,
+      chapter: null
+    },
+    {
+      id: 'social-media-planner',
+      name: 'Social Media Content Planner',
+      description: 'Plan and schedule engaging content across all social platforms with book marketing templates.',
+      category: 'marketing',
+      icon: MessageCircle,
+      component: SocialMediaContentPlanner,
+      chapter: null
+    },
+    {
       id: 'cost-calculator',
       name: 'Cost Calculator',
       description: 'Estimate your app development investment and budget planning.',
@@ -104,7 +125,13 @@ export function Tools() {
   );
 
   const toggleToolExpansion = (toolId: string) => {
-    setExpandedTool(expandedTool === toolId ? null : toolId);
+    const newExpanded = new Set(expandedTools);
+    if (expandedTools.has(toolId)) {
+      newExpanded.delete(toolId);
+    } else {
+      newExpanded.add(toolId);
+    }
+    setExpandedTools(newExpanded);
   };
 
   return (
@@ -137,44 +164,53 @@ export function Tools() {
         ))}
       </div>
 
-      {/* Tools Grid */}
-      <div className="space-y-6">
+      {/* Tools Grid - Apps dropdown on click */}
+      <div className="space-y-4">
         {filteredTools.map((tool) => {
           const ToolIcon = tool.icon;
           const ToolComponent = tool.component;
-          const isExpanded = expandedTool === tool.id;
+          const isExpanded = expandedTools.has(tool.id);
 
           return (
-            <div key={tool.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div key={tool.id} className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              {/* Tool Header - Clickable */}
               <div 
-                className="flex items-center justify-between p-6 cursor-pointer hover:bg-slate-50 transition-colors duration-200"
+                className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-slate-200 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-colors duration-200"
                 onClick={() => toggleToolExpansion(tool.id)}
               >
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <ToolIcon className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-xl font-semibold text-slate-900">{tool.name}</h3>
-                      {tool.chapter && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                          Chapter {tool.chapter}
-                        </span>
-                      )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <ToolIcon className="w-8 h-8 text-blue-600" />
                     </div>
-                    <p className="text-slate-600 mt-1">{tool.description}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-2xl font-bold text-slate-900">{tool.name}</h3>
+                        {tool.chapter && (
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                            Chapter {tool.chapter}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-600 text-lg">{tool.description}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                    {isExpanded ? 'Collapse' : 'Expand'}
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-slate-600 font-medium">
+                      {isExpanded ? 'Collapse' : 'Expand'}
+                    </span>
+                    {isExpanded ? (
+                      <ChevronUp className="w-6 h-6 text-slate-600" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 text-slate-600" />
+                    )}
+                  </div>
                 </div>
               </div>
 
+              {/* Tool Content - Loads when expanded */}
               {isExpanded && (
-                <div className="p-6 border-t border-slate-200 bg-slate-50">
+                <div className="p-6 bg-slate-50">
                   <ToolComponent 
                     chapterId={tool.chapter || 1} 
                     onComplete={() => console.log(`${tool.name} completed`)}
