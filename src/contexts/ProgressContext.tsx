@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 interface ChapterProgress {
   chapterId: number;
@@ -10,6 +12,20 @@ interface ChapterProgress {
   notes: string;
 }
 
+interface ProgressData {
+  id?: string;
+  user_id: string;
+  chapter_id: number;
+  completed: boolean;
+  quiz_score: number;
+  quiz_completed: boolean;
+  time_spent: number;
+  tools_used: string[];
+  notes: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface ProgressContextType {
   getChapterProgress: (chapterId: number) => ChapterProgress;
   updateProgress: (chapterId: number, updates: Partial<ChapterProgress>) => void;
@@ -19,6 +35,8 @@ interface ProgressContextType {
     totalTimeSpent: number;
     toolsUsed: number;
   };
+  progress: Record<number, ChapterProgress>;
+  loading: boolean;
 }
 
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
@@ -34,31 +52,112 @@ const defaultProgress: ChapterProgress = {
 };
 
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
+  const { user, session } = useAuth();
   const [progress, setProgress] = useState<Record<number, ChapterProgress>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedProgress = localStorage.getItem('bookProgress');
-    if (storedProgress) {
-      setProgress(JSON.parse(storedProgress));
+    if (user) {
+      loadProgressFromSupabase();
+    } else {
+      // Load from localStorage for non-authenticated users
+      const storedProgress = localStorage.getItem('bookProgress');
+      if (storedProgress) {
+        setProgress(JSON.parse(storedProgress));
+      }
     }
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem('bookProgress', JSON.stringify(progress));
-  }, [progress]);
+  const loadProgressFromSupabase = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error loading progress:', error);
+        return;
+      }
+
+      const progressMap: Record<number, ChapterProgress> = {};
+      data?.forEach((item: ProgressData) => {
+        progressMap[item.chapter_id] = {
+          chapterId: item.chapter_id,
+          completed: item.completed,
+          quizScore: item.quiz_score,
+          quizCompleted: item.quiz_completed,
+          timeSpent: item.time_spent,
+          toolsUsed: item.tools_used || [],
+          notes: item.notes || ''
+        };
+      });
+
+      setProgress(progressMap);
+    } catch (error) {
+      console.error('Error in loadProgressFromSupabase:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveProgressToSupabase = async (chapterId: number, progressData: ChapterProgress) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_progress')
+        .upsert({
+          user_id: user.id,
+          chapter_id: chapterId,
+          completed: progressData.completed,
+          quiz_score: progressData.quizScore,
+          quiz_completed: progressData.quizCompleted,
+          time_spent: progressData.timeSpent,
+          tools_used: progressData.toolsUsed,
+          notes: progressData.notes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,chapter_id'
+        });
+
+      if (error) {
+        console.error('Error saving progress:', error);
+      }
+    } catch (error) {
+      console.error('Error in saveProgressToSupabase:', error);
+    }
+  };
 
   const getChapterProgress = (chapterId: number): ChapterProgress => {
     return progress[chapterId] || { ...defaultProgress, chapterId };
   };
 
   const updateProgress = (chapterId: number, updates: Partial<ChapterProgress>) => {
+    const updatedProgress = {
+      ...getChapterProgress(chapterId),
+      ...updates,
+    };
+
     setProgress(prev => ({
       ...prev,
-      [chapterId]: {
-        ...getChapterProgress(chapterId),
-        ...updates,
-      },
+      [chapterId]: updatedProgress,
     }));
+
+    // Save to Supabase if user is authenticated, otherwise save to localStorage
+    if (user) {
+      saveProgressToSupabase(chapterId, updatedProgress);
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      const newProgress = {
+        ...progress,
+        [chapterId]: updatedProgress,
+      };
+      localStorage.setItem('bookProgress', JSON.stringify(newProgress));
+    }
   };
 
   const getTotalProgress = () => {
@@ -82,7 +181,13 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ProgressContext.Provider value={{ getChapterProgress, updateProgress, getTotalProgress }}>
+    <ProgressContext.Provider value={{ 
+      getChapterProgress, 
+      updateProgress, 
+      getTotalProgress,
+      progress,
+      loading 
+    }}>
       {children}
     </ProgressContext.Provider>
   );

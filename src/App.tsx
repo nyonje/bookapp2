@@ -12,6 +12,7 @@ import { Search } from './pages/Search';
 import { MarketingVault } from './pages/MarketingVault';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProgressProvider } from './contexts/ProgressContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -23,14 +24,46 @@ function App() {
             <main>
               <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/chapter/:chapterId" element={<ChapterDetail />} />
-                <Route path="/tools" element={<Tools />} />
-                <Route path="/build-app" element={<BuildApp />} />
-                <Route path="/marketing-vault" element={<MarketingVault />} />
-                <Route path="/community" element={<Community />} />
-                <Route path="/progress" element={<Progress />} />
-                <Route path="/search" element={<Search />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chapter/:chapterId" element={
+                  <ProtectedRoute>
+                    <ChapterDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/tools" element={
+                  <ProtectedRoute>
+                    <Tools />
+                  </ProtectedRoute>
+                } />
+                <Route path="/build-app" element={
+                  <ProtectedRoute>
+                    <BuildApp />
+                  </ProtectedRoute>
+                } />
+                <Route path="/marketing-vault" element={
+                  <ProtectedRoute>
+                    <MarketingVault />
+                  </ProtectedRoute>
+                } />
+                <Route path="/community" element={
+                  <ProtectedRoute>
+                    <Community />
+                  </ProtectedRoute>
+                } />
+                <Route path="/progress" element={
+                  <ProtectedRoute>
+                    <Progress />
+                  </ProtectedRoute>
+                } />
+                <Route path="/search" element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                } />
               </Routes>
             </main>
           </div>
