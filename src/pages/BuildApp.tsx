@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Code, Download, Sparkles, BookOpen, Users, Target, Zap } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 
 interface BookDetails {
   title: string;
@@ -16,6 +18,7 @@ interface BookDetails {
 }
 
 export function BuildApp() {
+  const { hasAccess } = useAuth();
   const [step, setStep] = useState(1);
   const [bookDetails, setBookDetails] = useState<BookDetails>({
     title: '',
@@ -34,6 +37,16 @@ export function BuildApp() {
   const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  if (!hasAccess('build_app')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <SubscriptionGate feature="build_app">
+          {/* This will show the upgrade prompt */}
+        </SubscriptionGate>
+      </div>
+    );
+  }
 
   const handleInputChange = (field: keyof BookDetails, value: string) => {
     setBookDetails(prev => ({

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Menu, X, User, LogOut } from 'lucide-react';
+import { BookOpen, Menu, X, User, LogOut, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from './AuthModal';
 import { UserProfile } from './UserProfile';
@@ -10,7 +10,7 @@ const Header: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, subscription, isAdmin } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
@@ -27,6 +27,20 @@ const Header: React.FC = () => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const getCurrentTierName = () => {
+    if (isAdmin) return 'Admin';
+    if (!subscription) return 'Free';
+    return subscription.tier?.name || 'Free';
+  };
+
+  const getTierColor = () => {
+    if (isAdmin) return 'text-red-600';
+    const tierName = getCurrentTierName().toLowerCase();
+    if (tierName === 'premium') return 'text-purple-600';
+    if (tierName === 'pro') return 'text-blue-600';
+    return 'text-slate-600';
   };
 
   return (
@@ -60,7 +74,18 @@ const Header: React.FC = () => {
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="relative">
+                <div className="flex items-center space-x-3">
+                  {/* Subscription Badge */}
+                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                    isAdmin ? 'bg-red-100 text-red-700' :
+                    getCurrentTierName() === 'Premium' ? 'bg-purple-100 text-purple-700' :
+                    getCurrentTierName() === 'Pro' ? 'bg-blue-100 text-blue-700' :
+                    'bg-slate-100 text-slate-700'
+                  }`}>
+                    {isAdmin && <Crown className="w-3 h-3" />}
+                    <span>{getCurrentTierName()}</span>
+                  </div>
+                  
                   <button
                     onClick={() => setShowUserProfile(true)}
                     className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 transition-colors"
@@ -108,6 +133,19 @@ const Header: React.FC = () => {
                     {item.name}
                   </Link>
                 ))}
+                {user && (
+                  <div className="px-3 py-2">
+                    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                      isAdmin ? 'bg-red-100 text-red-700' :
+                      getCurrentTierName() === 'Premium' ? 'bg-purple-100 text-purple-700' :
+                      getCurrentTierName() === 'Pro' ? 'bg-blue-100 text-blue-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {isAdmin && <Crown className="w-3 h-3" />}
+                      <span>{getCurrentTierName()}</span>
+                    </div>
+                  </div>
+                )}
                 {user && (
                   <button
                     onClick={handleSignOut}

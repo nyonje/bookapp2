@@ -1,19 +1,44 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Crown } from 'lucide-react';
 import { ChapterCard } from '../components/ChapterCard';
 import { ProgressOverview } from '../components/ProgressOverview';
 import { RecentActivity } from '../components/RecentActivity';
 import { QuickActions } from '../components/QuickActions';
 import { chapters } from '../data/chapters';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Dashboard() {
+  const { subscription, isAdmin } = useAuth();
+  
+  const getCurrentTierName = () => {
+    if (isAdmin) return 'Admin';
+    if (!subscription) return 'Free';
+    return subscription.tier?.name || 'Free';
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white">
-        <h1 className="text-3xl font-bold mb-4">
-          Welcome to Your Book Companion App Journey
-        </h1>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-4">
+              Welcome to Your Book Companion App Journey
+            </h1>
+          </div>
+          <div className="text-right">
+            <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${
+              isAdmin ? 'bg-red-500 text-white' :
+              getCurrentTierName() === 'Premium' ? 'bg-purple-500 text-white' :
+              getCurrentTierName() === 'Pro' ? 'bg-blue-500 text-white' :
+              'bg-white text-slate-700'
+            }`}>
+              {isAdmin && <Crown className="w-4 h-4" />}
+              <span>{getCurrentTierName()} Plan</span>
+            </div>
+          </div>
+        </div>
         <p className="text-blue-100 text-lg leading-relaxed max-w-3xl">
           Transform passive reading into active learning. Follow along with interactive lessons, 
           practical tools, and a supportive community as you build your own book companion app.

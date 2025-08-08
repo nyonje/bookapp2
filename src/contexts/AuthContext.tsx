@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, User, Profile } from '../lib/supabase';
+import { supabase, User, Profile, UserSubscription, SubscriptionTier } from '../lib/supabase';
 import { Session, AuthError } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  subscription: UserSubscription | null;
+  isAdmin: boolean;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: AuthError | null }>;
+  hasAccess: (feature: string) => boolean;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchUserProfile(session.user.id);
       } else {
         setUser(null);
+        setSubscription(null);
       }
       
       setLoading(false);
@@ -65,11 +71,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: profile.id,
           email: profile.email,
           full_name: profile.full_name,
-          avatar_url: profile.avatar_url
+          avatar_url: profile.avatar_url,
+          role: profile.role
         });
+        
+        // Fetch user subscription
+        await fetchUserSubscription(userId);
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+    }
+  };
+
+  const fetchUserSubscription = async (userId: string) => {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          tier:subscription_tiers(*)
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error('Error fetching subscription:', error);
+        return;
+      }
+
+      setSubscription(subscription || null);
+    } catch (error) {
+      console.error('Error in fetchUserSubscription:', error);
+    }
+  };
+
+  const refreshSubscription = async () => {
+    if (user) {
+      await fetchUserSubscription(user.id);
     }
   };
 
@@ -109,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
+      setSubscription(null);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -139,15 +179,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const hasAccess = (feature: string): boolean => {
+    // Admin has access to everything
+    if (user?.role === 'admin') {
+      return true;
+    }
+
+    // No subscription means free tier
+    if (!subscription || !subscription.tier) {
+      return feature === 'chapter_1';
+    }
+
+    const tierFeatures = subscription.tier.features || [];
+    
+    // Check specific feature access
+    if (feature.startsWith('chapter_')) {
+      const chapterNum = parseInt(feature.split('_')[1]);
+      if (chapterNum === 1) return true; // Chapter 1 is always free
+      return tierFeatures.includes('all_chapters');
+    }
+
+    return tierFeatures.includes(feature);
+  };
+
+  const isAdmin = user?.role === 'admin' || user?.email === 'onnyonje@gmail.com';
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       session, 
+      subscription,
+      isAdmin,
       loading, 
       signUp, 
       signIn, 
       signOut, 
-      updateProfile 
+      updateProfile,
+      hasAccess,
+      refreshSubscription
     }}>
       {children}
     </AuthContext.Provider>

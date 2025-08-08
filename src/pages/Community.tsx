@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import { MessageCircle, Users, TrendingUp, Plus, Heart, Reply } from 'lucide-react';
 import { CommunityForum } from '../components/CommunityForum';
+import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 
 export function Community() {
+  const { hasAccess } = useAuth();
   const [activeTab, setActiveTab] = useState<'discussions' | 'showcase' | 'resources' | 'forum'>('discussions');
+
+  if (!hasAccess('community')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <SubscriptionGate feature="community">
+          {/* This will show the upgrade prompt */}
+        </SubscriptionGate>
+      </div>
+    );
+  }
 
   const discussions = [
     {

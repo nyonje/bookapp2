@@ -6,17 +6,31 @@ import { Quiz } from '../components/Quiz';
 import { ChapterTools } from '../components/ChapterTools';
 import { AudioSummary } from '../components/AudioSummary';
 import { useProgress } from '../contexts/ProgressContext';
+import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 
 export function ChapterDetail() {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [activeTab, setActiveTab] = useState<'content' | 'audio' | 'quiz' | 'tools'>('content');
   const { updateProgress, getChapterProgress } = useProgress();
+  const { hasAccess } = useAuth();
   
   const chapter = chapters.find(ch => ch.id === parseInt(chapterId || '1'));
   const progress = getChapterProgress(parseInt(chapterId || '1'));
+  const chapterAccess = hasAccess(`chapter_${chapterId}`);
 
   if (!chapter) {
     return <div>Chapter not found</div>;
+  }
+
+  if (!chapterAccess) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <SubscriptionGate feature={`chapter_${chapterId}`}>
+          {/* This will show the upgrade prompt */}
+        </SubscriptionGate>
+      </div>
+    );
   }
 
   const tabs = [

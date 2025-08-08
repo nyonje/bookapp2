@@ -21,6 +21,7 @@ export interface Profile {
   email: string;
   full_name: string;
   avatar_url?: string;
+  role?: 'user' | 'admin';
   created_at: string;
   updated_at: string;
 }
@@ -30,4 +31,26 @@ export interface User {
   email: string;
   full_name: string;
   avatar_url?: string;
+  role?: 'user' | 'admin';
+}
+
+export interface SubscriptionTier {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  created_at: string;
+}
+
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  tier_id: string;
+  status: 'active' | 'cancelled' | 'expired' | 'trial';
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+  updated_at: string;
+  tier?: SubscriptionTier;
 }

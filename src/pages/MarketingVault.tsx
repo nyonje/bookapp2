@@ -5,6 +5,8 @@ import {
   Calendar, DollarSign, BarChart3, MessageCircle, Star, 
   ChevronRight, Eye, Heart, Download, ChevronDown, ChevronUp
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 
 // Import interactive marketing tools
 import { TargetAudienceAnalyzer } from '../components/tools/TargetAudienceAnalyzer';
@@ -105,9 +107,20 @@ const marketingResources = [
 ];
 
 export function MarketingVault() {
+  const { hasAccess } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
+
+  if (!hasAccess('marketing_vault')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <SubscriptionGate feature="marketing_vault">
+          {/* This will show the upgrade prompt */}
+        </SubscriptionGate>
+      </div>
+    );
+  }
 
   const categories = ['All', ...new Set(marketingTools.map(tool => tool.category))];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];

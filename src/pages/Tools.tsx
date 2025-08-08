@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calculator, FileText, CheckSquare, Lightbulb, Users, Target, Settings, Calendar, BarChart3, Wrench, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { CostCalculator } from '../components/CostCalculator';
 import { AppPlanningWorksheet } from '../components/AppPlanningWorksheet';
+import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionGate } from '../components/SubscriptionGate';
 
 // Import our new interactive tools
 import { ReaderEngagementAudit } from '../components/tools/ReaderEngagementAudit';
@@ -14,8 +16,19 @@ import { TargetAudienceAnalyzer } from '../components/tools/TargetAudienceAnalyz
 import { SocialMediaContentPlanner } from '../components/tools/SocialMediaContentPlanner';
 
 export function Tools() {
+  const { hasAccess } = useAuth();
   const [activeCategory, setActiveCategory] = useState<'all' | 'planning' | 'analysis' | 'development' | 'business' | 'templates' | 'marketing'>('all');
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
+
+  if (!hasAccess('tools')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <SubscriptionGate feature="tools">
+          {/* This will show the upgrade prompt */}
+        </SubscriptionGate>
+      </div>
+    );
+  }
 
   const categories = [
     { id: 'all', label: 'All Tools', icon: CheckSquare },
