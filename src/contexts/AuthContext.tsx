@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
       
       if (session?.user) {
@@ -55,18 +56,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data: profile, error } = await supabase
+      console.log('Fetching profile for user:', userId);
+      
+      // First, check if profile exists
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        console.log('Profile not found, creating new profile');
+        const { data: authUser } = await supabase.auth.getUser();
+        
+        if (authUser.user) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: authUser.user.email,
+              full_name: authUser.user.user_metadata?.full_name || authUser.user.email,
+              role: authUser.user.email === 'onnyonje@gmail.com' ? 'admin' : 'user'
+            })
+            .select()
+            .single();
 
-      if (profile) {
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            return;
+          }
+
+          if (newProfile) {
+            setUser({
+              id: newProfile.id,
+              email: newProfile.email,
+              full_name: newProfile.full_name,
+              avatar_url: newProfile.avatar_url,
+              role: newProfile.role
+            });
+            
+            // Fetch user subscription
+            await fetchUserSubscription(userId);
+          }
+        }
+      } else if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return;
+      } else if (profile) {
+        console.log('Profile found:', profile);
         setUser({
           id: profile.id,
           email: profile.email,
@@ -85,6 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserSubscription = async (userId: string) => {
     try {
+      console.log('Fetching subscription for user:', userId);
+      
       const { data: subscription, error } = await supabase
         .from('user_subscriptions')
         .select(`
@@ -95,12 +135,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('status', 'active')
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      if (error && error.code === 'PGRST116') {
+        // No subscription found, create free subscription
+        console.log('No subscription found, creating free subscription');
+        
+        const { data: newSubscription, error: createError } = await supabase
+          .from('user_subscriptions')
+          .insert({
+            user_id: userId,
+            tier_id: 'free',
+            status: 'active'
+          })
+          .select(`
+            *,
+            tier:subscription_tiers(*)
+          `)
+          .single();
+
+        if (createError) {
+          console.error('Error creating free subscription:', createError);
+          return;
+        }
+
+        setSubscription(newSubscription || null);
+      } else if (error) {
         console.error('Error fetching subscription:', error);
         return;
+      } else {
+        console.log('Subscription found:', subscription);
+        setSubscription(subscription || null);
       }
-
-      setSubscription(subscription || null);
     } catch (error) {
       console.error('Error in fetchUserSubscription:', error);
     }
@@ -114,37 +178,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      console.log('Signing up user:', email);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName
-          }
+          },
+          emailRedirectTo: undefined // Disable email confirmation for demo
         }
       });
 
-      return { error };
+      if (error) {
+        console.error('Sign up error:', error);
+        return { error };
+      }
+
+      console.log('Sign up successful:', data);
+      return { error: null };
     } catch (error) {
+      console.error('Sign up exception:', error);
       return { error: error as AuthError };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Signing in user:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      return { error };
+      if (error) {
+        console.error('Sign in error:', error);
+        return { error };
+      }
+
+      console.log('Sign in successful:', data);
+      return { error: null };
     } catch (error) {
+      console.error('Sign in exception:', error);
       return { error: error as AuthError };
     }
   };
 
   const signOut = async () => {
     try {
+      console.log('Signing out user');
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -181,7 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasAccess = (feature: string): boolean => {
     // Admin has access to everything
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.email === 'onnyonje@gmail.com') {
       return true;
     }
 

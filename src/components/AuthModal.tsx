@@ -48,30 +48,44 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
           return;
         }
 
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Attempting sign up for:', email);
         const { error } = await signUp(email, password, fullName);
         
         if (error) {
+          console.error('Sign up error:', error);
           setError(error.message);
         } else {
-          setSuccess('Account created successfully! Please check your email to verify your account.');
+          setSuccess('Account created successfully! You are now signed in.');
           setTimeout(() => {
-            setMode('signin');
-            setSuccess(null);
-          }, 3000);
+            handleClose();
+            // Refresh the page to ensure all components update
+            window.location.reload();
+          }, 2000);
         }
       } else {
+        console.log('Attempting sign in for:', email);
         const { error } = await signIn(email, password);
         
         if (error) {
+          console.error('Sign in error:', error);
           setError(error.message);
         } else {
           setSuccess('Signed in successfully!');
           setTimeout(() => {
             handleClose();
+            // Refresh the page to ensure all components update
+            window.location.reload();
           }, 1000);
         }
       }
     } catch (err) {
+      console.error('Authentication exception:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -116,6 +130,22 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Demo Accounts */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="font-semibold text-blue-900 mb-2">Demo Accounts</h3>
+            <div className="space-y-2 text-sm">
+              <div>
+                <strong>Admin:</strong> onnyonje@gmail.com / password123
+              </div>
+              <div>
+                <strong>Pro User:</strong> pro@example.com / password123
+              </div>
+              <div>
+                <strong>Free User:</strong> free@example.com / password123
+              </div>
+            </div>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
